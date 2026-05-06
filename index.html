@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFI Feed Survey Report Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --dark:    #2A4957;
+    --mid:     #44546A;
+    --light-blue: #5C747E;
+    --gold:    #F2DCA6;
+    --cell-blue: #d6e4ea;
+    --white:   #ffffff;
+    --black:   #1a1a1a;
+    --border:  #cccccc;
+    --error:   #c0392b;
+    --success: #27ae60;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eef2f5;
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  /* ── App Shell ── */
+  .app-header {
+    background: var(--dark);
+    color: white;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  }
+  .app-header-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .app-header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  .app-header p {
+    font-size: .8rem;
+    opacity: .75;
+    margin-top: 1px;
+  }
+  .header-badge {
+    margin-left: auto;
+    background: var(--gold);
+    color: var(--dark);
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* ── Progress Bar ── */
+  .progress-bar {
+    background: rgba(255,255,255,.1);
+    height: 3px;
+  }
+  .progress-fill {
+    background: var(--gold);
+    height: 3px;
+    transition: width .4s ease;
+  }
+
+  /* ── Step Indicators ── */
+  .step-nav {
+    background: white;
+    border-bottom: 1px solid #dde3e8;
+  }
+  .step-nav-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .step-nav-inner::-webkit-scrollbar { display: none; }
+  .step-tab {
+    padding: 14px 20px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #8a9bb0;
+    border-bottom: 3px solid transparent;
+    cursor: default;
+    white-space: nowrap;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    user-select: none;
+  }
+  .step-tab.active {
+    color: var(--dark);
+    border-bottom-color: var(--dark);
+  }
+  .step-tab.done {
+    color: var(--success);
+    cursor: pointer;
+  }
+  .step-tab.done:hover {
+    color: var(--dark);
+    border-bottom-color: #ccc;
+  }
+  .step-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: .7rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    background: #e8edf2;
+    color: #8a9bb0;
+    flex-shrink: 0;
+  }
+  .step-tab.active .step-num {
+    background: var(--dark);
+    color: white;
+  }
+  .step-tab.done .step-num {
+    background: var(--success);
+    color: white;
+  }
+
+  /* ── Main Content ── */
+  .main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── Step Panels ── */
+  .step-panel { display: none; }
+  .step-panel.active { display: block; animation: fadeUp .3s ease; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .panel-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+  .panel-desc {
+    font-size: .875rem;
+    color: #6b7b8d;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: white;
+    border: 1px solid #dde3e8;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--light-blue);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  /* ── Form Controls ── */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 600px) {
+    .form-row, .form-row.three { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--mid);
+  }
+  label .required { color: var(--error); margin-left: 2px; }
+
+  input[type=text], input[type=email], input[type=tel],
+  input[type=date], input[type=number], input[type=file], select {
+    padding: 9px 12px;
+    border: 1.5px solid #d0d8e0;
+    border-radius: 5px;
+    font-size: .9rem;
+    font-family: inherit;
+    color: var(--black);
+    background: white;
+    transition: border-color .2s, box-shadow .2s;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--dark);
+    box-shadow: 0 0 0 3px rgba(42,73,87,.1);
+  }
+  input[type=file] {
+    padding: 6px 10px;
+    font-size: .82rem;
+    cursor: pointer;
+  }
+
+  /* ── Pile Cards ── */
+  .pile-card {
+    background: white;
+    border: 1.5px solid #dde3e8;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .pile-card:hover { border-color: var(--light-blue); }
+  .pile-card-header {
+    background: var(--dark);
+    color: white;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: .9rem;
+  }
+  .pile-card-header .pile-badge {
+    background: var(--gold);
+    color: var(--dark);
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .pile-card-body { padding: 18px; }
+
+  .btn-remove {
+    background: rgba(255,255,255,.15);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 600;
+    transition: background .2s;
+  }
+  .btn-remove:hover { background: rgba(192,57,43,.7); }
+
+  /* ── Drop Zone ── */
+  .drop-zone {
+    border: 2px dashed #c5d0da;
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    background: #fafbfc;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--dark);
+    background: #f0f4f7;
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-zone-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .drop-zone-text { font-size: .82rem; color: #7a8a9a; }
+  .drop-zone-text strong { color: var(--dark); }
+  .drop-zone-preview {
+    max-width: 100%; max-height: 140px;
+    border-radius: 4px; margin-top: 10px;
+    display: none;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 5px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: inherit;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--dark);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: #1f3d4d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(42,73,87,.3);
+  }
+  .btn-secondary {
+    background: white;
+    color: var(--dark);
+    border: 1.5px solid var(--dark);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #f0f4f7;
+  }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--dark);
+  }
+  .btn-gold:hover:not(:disabled) {
+    background: #e8c98e;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(242,220,166,.4);
+  }
+  .btn-add {
+    background: #f0f4f7;
+    color: var(--dark);
+    border: 1.5px dashed #b0bfcc;
+    width: 100%;
+    padding: 12px;
+    font-size: .875rem;
+  }
+  .btn-add:hover { background: #e4ecf2; border-color: var(--dark); }
+
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .action-bar .spacer { flex: 1; }
+
+  /* ── CSV Upload Zone ── */
+  .csv-zone {
+    border: 2px dashed #c5d0da;
+    border-radius: 8px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    background: #fafbfc;
+    position: relative;
+  }
+  .csv-zone:hover, .csv-zone.drag-over {
+    border-color: var(--dark);
+    background: #f0f4f7;
+  }
+  .csv-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .csv-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .csv-zone h3 { font-size: 1.1rem; color: var(--dark); margin-bottom: 6px; }
+  .csv-zone p { font-size: .85rem; color: #7a8a9a; }
+
+  /* ── Alert / Status ── */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 5px;
+    font-size: .85rem;
+    font-weight: 500;
+    margin-top: 12px;
+    display: none;
+  }
+  .alert.show { display: flex; align-items: center; gap: 8px; }
+  .alert-success { background: #eafaf1; color: #1e8449; border-left: 4px solid var(--success); }
+  .alert-error   { background: #fdf3f0; color: #922b21; border-left: 4px solid var(--error); }
+  .alert-info    { background: #eaf3fb; color: #1a5276; border-left: 4px solid #2980b9; }
+
+  /* ── Review Table ── */
+  .review-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+    margin-top: 12px;
+  }
+  .review-table th {
+    background: var(--mid);
+    color: white;
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: .78rem;
+  }
+  .review-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eef1f4;
+  }
+  .review-table tbody tr:nth-child(odd) td { background: var(--cell-blue); }
+  .review-table tbody tr:nth-child(even) td { background: white; }
+  .review-table .total-row td {
+    background: var(--dark) !important;
+    color: white;
+    font-weight: 700;
+  }
+  .review-table .sub-row td {
+    background: #f0f4f7 !important;
+    font-weight: 600;
+    font-style: italic;
+  }
+
+  /* ── Success Screen ── */
+  .success-screen {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .success-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+  }
+  .success-screen h2 {
+    font-size: 1.6rem;
+    color: var(--dark);
+    margin-bottom: 8px;
+  }
+  .success-screen p {
+    color: #6b7b8d;
+    margin-bottom: 28px;
+    font-size: .95rem;
+  }
+
+  /* ── OR Divider ── */
+  .or-divider {
+    display: flex; align-items: center; gap: 12px;
+    color: #aab; font-size: .8rem; margin: 20px 0;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; flex: 1; height: 1px; background: #dde3e8;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Info Chips ── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #eef2f5; color: #4a6070;
+    font-size: .75rem; font-weight: 600;
+    padding: 3px 8px; border-radius: 10px;
+  }
+  .chip-gold { background: #fdf6e3; color: #7a5c00; }
+
+  .type-hint {
+    font-size: .75rem;
+    color: #8a9bb0;
+    margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="app-header-inner">
+    <div>
+      <h1>CFI Feed Survey Report Generator</h1>
+      <p>Core Functional Ingredients</p>
+    </div>
+    <span class="header-badge">Professional</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+</header>
+
+<!-- ═══ STEP NAV ══════════════════════════════════════════════════════════ -->
+<nav class="step-nav">
+  <div class="step-nav-inner">
+    <div class="step-tab active" id="tab-1" onclick="goToStep(1)">
+      <span class="step-num">1</span> Import Data
+    </div>
+    <div class="step-tab" id="tab-2" onclick="goToStep(2)">
+      <span class="step-num">2</span> Report Info
+    </div>
+    <div class="step-tab" id="tab-3" onclick="goToStep(3)">
+      <span class="step-num">3</span> Pile Details
+    </div>
+    <div class="step-tab" id="tab-4" onclick="goToStep(4)">
+      <span class="step-num">4</span> Images
+    </div>
+    <div class="step-tab" id="tab-5" onclick="goToStep(5)">
+      <span class="step-num">5</span> Review
+    </div>
+    <div class="step-tab" id="tab-6" onclick="goToStep(6)">
+      <span class="step-num">6</span> Download
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ MAIN CONTENT ══════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── STEP 1: Import ── -->
+  <div class="step-panel active" id="panel-1">
+    <div class="panel-title">Import Drone Data</div>
+    <div class="panel-desc">Upload your Propeller CSV export to auto-populate pile measurements, or skip to enter everything manually.</div>
+
+    <div class="card">
+      <div class="card-title">Upload Propeller CSV</div>
+      <div class="csv-zone" id="csvDropZone">
+        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
+        <div class="csv-icon">📄</div>
+        <h3>Drop your CSV here or click to browse</h3>
+        <p>Propeller_Measurements_CSV_Report_*.csv</p>
+      </div>
+      <div class="alert" id="csvAlert"></div>
+    </div>
+
+    <div class="or-divider">or enter manually</div>
+
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="skipToManual()">Skip — Enter Manually</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="csvNextBtn" onclick="nextStep()" disabled>Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Report Info ── -->
+  <div class="step-panel" id="panel-2">
+    <div class="panel-title">Report Information</div>
+    <div class="panel-desc">Enter the site details and preparer information that will appear on the report.</div>
+
+    <div class="card">
+      <div class="card-title">Site Details</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Site Name <span class="required">*</span></label>
+          <input type="text" id="siteName" placeholder="e.g. Mahogany Fish Creek 3-9-26">
+        </div>
+        <div class="field">
+          <label>Report Date <span class="required">*</span></label>
+          <input type="date" id="reportDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Preparer Information</div>
+      <div class="form-row full">
+        <div class="field">
+          <label>Preparer Name <span class="required">*</span></label>
+          <input type="text" id="preparerName" value="Kory Duerst">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:14px">
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" id="preparerPhone" value="608-886-6451">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="preparerEmail" value="Kory@corefunctionalingredients.com">
+        </div>
+      </div>
+    </div>
+
+    <div class="alert" id="infoAlert"></div>
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" onclick="validateInfoStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Pile Details ── -->
+  <div class="step-panel" id="panel-3">
+    <div class="panel-title">Pile Details</div>
+    <div class="panel-desc">Enter or verify measurements for each pile. Values are pre-filled from your CSV if uploaded.</div>
+
+    <div id="pilesContainer"></div>
+
+    <button class="btn btn-add" onclick="addPile()">+ Add Another Pile</button>
+
+    <div class="alert" id="pileAlert"></div>
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" onclick="validatePileStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Images ── -->
+  <div class="step-panel" id="panel-4">
+    <div class="panel-title">Pile Images</div>
+    <div class="panel-desc">Upload the drone imagery for each pile. All images are optional but will be embedded in the PDF.</div>
+
+    <div class="card">
+      <div class="card-title">Overview / Aerial Image</div>
+      <div class="drop-zone" id="dz-overview">
+        <input type="file" accept="image/*" onchange="handleImageUpload('overview', this)">
+        <div class="drop-zone-icon">🛰️</div>
+        <div class="drop-zone-text"><strong>Summary page overview image</strong><br>Drag & drop or click to browse</div>
+        <img class="drop-zone-preview" id="prev-overview">
+      </div>
+    </div>
+
+    <div id="pileImageContainer"></div>
+
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" onclick="buildReview(); nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Review ── -->
+  <div class="step-panel" id="panel-5">
+    <div class="panel-title">Review Report</div>
+    <div class="panel-desc">Verify all information below before generating your PDF. Click any step tab above to go back and make changes.</div>
+
+    <div class="card" id="reviewCard">
+      <div class="card-title">Products Summary</div>
+      <div id="reviewTableContainer"></div>
+    </div>
+
+    <div class="card" id="reviewMetaCard">
+      <div class="card-title">Report Details</div>
+      <div id="reviewMeta"></div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="generateBtn" onclick="generatePDF()">
+        Generate PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ── STEP 6: Download ── -->
+  <div class="step-panel" id="panel-6">
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <h2>Report Ready!</h2>
+      <p>Your CFI Feed Survey Report has been generated successfully.</p>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="downloadBtn" onclick="triggerDownload()">⬇ Download PDF</button>
+        <button class="btn btn-secondary" onclick="startNew()">Start New Report</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let currentStep = 1;
+let maxUnlocked = 1;
+let pileCount = 0;
+let pileData = [];       // { id, name, type, horizArea, surfArea, fillVolYd3, maxHt, density, dmOverride }
+let pileImages = {};     // { 'overview': base64, '1': base64, '2': base64, ... }
+let generatedPDFBlob = null;
+let generatedFileName = '';
+
+// ── Config ────────────────────────────────────────────────────────────────
+const PRICES = {
+  'Haylage':       { price: 80,  dm: 40 },
+  'Corn Silage':   { price: 50,  dm: 35 },
+  'High Moisture': { price: 120, dm: 70 },
+  'Other':         { price: 40,  dm: 40 }
+};
+
+const PRODUCT_KEYWORDS = {
+  'High Moisture': ['high moisture','high-moisture','hmc','hm corn','earlage'],
+  'Corn Silage':   ['corn silage','cornsilage','\\bcs\\b'],
+  'Haylage':       ['haylage','hay lage','alfalfa','grass silage','ryelage','sorghum silage','\\bhay\\b'],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+function goToStep(n) {
+  if (n > maxUnlocked) return;
+  currentStep = n;
+  document.querySelectorAll('.step-panel').forEach((p,i) => {
+    p.classList.toggle('active', i+1 === n);
+  });
+  document.querySelectorAll('.step-tab').forEach((t,i) => {
+    t.classList.remove('active','done');
+    if (i+1 === n) t.classList.add('active');
+    else if (i+1 < n || i+1 <= maxUnlocked) t.classList.add('done');
+  });
+  document.getElementById('progressFill').style.width = (n/6*100) + '%';
+  window.scrollTo(0,0);
+}
+
+function nextStep() {
+  maxUnlocked = Math.max(maxUnlocked, currentStep+1);
+  goToStep(currentStep+1);
+}
+
+function prevStep() { goToStep(currentStep-1); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STEP 1 — CSV
+// ═══════════════════════════════════════════════════════════════════════════
+function handleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = parseCSV(e.target.result);
+      pileData = parsed;
+      buildPileCards();
+
+      // Auto-fill site name from filename
+      // Format: "Propeller Measurements CSV Report - SiteName - Apr 30, 2026.csv"
+      const parts = file.name.replace('.csv','').split(' - ');
+      if (parts.length >= 2) {
+        document.getElementById('siteName').value = parts[1].trim();
+      }
+
+      showAlert('csvAlert', 'success', `✓ Parsed ${parsed.length} pile(s) from CSV`);
+      document.getElementById('csvNextBtn').disabled = false;
+    } catch(err) {
+      showAlert('csvAlert', 'error', '✗ ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  // Strip BOM
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) throw new Error('CSV must have header + at least one data row');
+
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+
+  // Find columns
+  const findCol = (...names) => {
+    for (const n of names) {
+      const idx = headers.findIndex(h => h.includes(n));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  const colName  = findCol('measurement name', 'name');
+  const colVol   = findCol('volume (yd³) (cut)', 'volume (yd3) (cut)', 'volume');
+  const colSurf  = findCol('surface area');
+  const colHoriz = findCol('horizontal area');
+
+  if (colName < 0)  throw new Error('Cannot find "Measurement name" column');
+  if (colVol  < 0)  throw new Error('Cannot find "Volume (yd³) (cut)" column');
+  if (colSurf < 0)  throw new Error('Cannot find "Surface Area" column');
+  if (colHoriz < 0) throw new Error('Cannot find "Horizontal Area" column');
+
+  const results = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = splitCSVLine(lines[i]).map(v => v.trim().replace(/^"|"$/g,''));
+    if (!vals[colName]) continue;
+    const name = vals[colName].trim();
+    const vol  = Math.abs(parseFloat(vals[colVol])  || 0);
+    const surf = parseFloat(vals[colSurf])  || 0;
+    const hor  = parseFloat(vals[colHoriz]) || 0;
+    results.push({
+      id: i,
+      name,
+      type: detectType(name),
+      horizArea:   hor,
+      surfArea:    surf,
+      fillVolYd3:  vol,
+      maxHt:       0,
+      density:     16,
+      dmOverride:  null
+    });
+  }
+  if (results.length === 0) throw new Error('No valid data rows found');
+  return results;
+}
+
+function splitCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; cur += ch; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+
+function detectType(name) {
+  const low = name.toLowerCase();
+  for (const [type, keywords] of Object.entries(PRODUCT_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (new RegExp(kw).test(low)) return type;
+    }
+  }
+  return 'Other';
+}
+
+function skipToManual() {
+  if (pileData.length === 0) {
+    pileData = [];
+    buildPileCards();
+    if (pileCount === 0) addPile();
+  }
+  maxUnlocked = Math.max(maxUnlocked, 2);
+  goToStep(2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STEP 2 — Validate Info
+// ═══════════════════════════════════════════════════════════════════════════
+function validateInfoStep() {
+  const site = document.getElementById('siteName').value.trim();
+  const date = document.getElementById('reportDate').value;
+  const name = document.getElementById('preparerName').value.trim();
+  if (!site) return showAlert('infoAlert','error','✗ Site name is required');
+  if (!date) return showAlert('infoAlert','error','✗ Report date is required');
+  if (!name) return showAlert('infoAlert','error','✗ Preparer name is required');
+  hideAlert('infoAlert');
+  nextStep();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STEP 3 — Pile Cards
+// ═══════════════════════════════════════════════════════════════════════════
+function buildPileCards() {
+  const container = document.getElementById('pilesContainer');
+  container.innerHTML = '';
+  pileCount = 0;
+  pileData.forEach(p => addPileCard(p));
+}
+
+function addPile() {
+  pileData.push({ id: Date.now(), name:'', type:'Haylage', horizArea:0, surfArea:0, fillVolYd3:0, maxHt:0, density:16, dmOverride:null });
+  addPileCard(pileData[pileData.length-1]);
+}
+
+function addPileCard(pile) {
+  pileCount++;
+  const num = pileCount;
+  const container = document.getElementById('pilesContainer');
+  const div = document.createElement('div');
+  div.className = 'pile-card';
+  div.id = `pcard-${pile.id}`;
+  div.innerHTML = `
+    <div class="pile-card-header">
+      <span>Pile #${num}: <span id="pname-label-${pile.id}">${pile.name || 'New Pile'}</span></span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="pile-badge" id="ptype-badge-${pile.id}">${pile.type}</span>
+        <button class="btn-remove" onclick="removePile('${pile.id}')">Remove</button>
+      </div>
+    </div>
+    <div class="pile-card-body">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field">
+          <label>Product Name <span class="required">*</span></label>
+          <input type="text" id="pn-${pile.id}" value="${pile.name}"
+            oninput="updatePileName('${pile.id}',this.value)"
+            placeholder="e.g. 2nd Crop Haylage West">
+        </div>
+        <div class="field">
+          <label>Product Type <span class="required">*</span></label>
+          <select id="pt-${pile.id}" onchange="updatePileType('${pile.id}',this.value)">
+            <option value="Haylage"       ${pile.type==='Haylage'?'selected':''}>Haylage — $80/ton @ 40% DM</option>
+            <option value="Corn Silage"   ${pile.type==='Corn Silage'?'selected':''}>Corn Silage — $50/ton @ 35% DM</option>
+            <option value="High Moisture" ${pile.type==='High Moisture'?'selected':''}>High Moisture — $120/ton @ 70% DM</option>
+            <option value="Other"         ${pile.type==='Other'?'selected':''}>Other — $40/ton @ 40% DM</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row three" style="margin-bottom:14px">
+        <div class="field">
+          <label>Horizontal Area (ft²) <span class="required">*</span></label>
+          <input type="number" id="pha-${pile.id}" value="${pile.horizArea||''}" step="0.1" min="0" oninput="updatePileField('${pile.id}','horizArea',this.value)">
+        </div>
+        <div class="field">
+          <label>Surface Area (ft²) <span class="required">*</span></label>
+          <input type="number" id="psa-${pile.id}" value="${pile.surfArea||''}" step="0.1" min="0" oninput="updatePileField('${pile.id}','surfArea',this.value)">
+        </div>
+        <div class="field">
+          <label>Fill Volume (yd³) <span class="required">*</span></label>
+          <input type="number" id="pv-${pile.id}" value="${pile.fillVolYd3||''}" step="0.1" min="0" oninput="updatePileField('${pile.id}','fillVolYd3',this.value)">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="field">
+          <label>Max Height (ft) <span class="required">*</span></label>
+          <input type="number" id="pmh-${pile.id}" value="${pile.maxHt||''}" step="0.1" min="0" oninput="updatePileField('${pile.id}','maxHt',this.value)">
+        </div>
+        <div class="field">
+          <label>Center Density (lb/ft³) <span class="required">*</span></label>
+          <input type="number" id="pd-${pile.id}" value="${pile.density||16}" step="1" min="1" oninput="updatePileField('${pile.id}','density',this.value)">
+        </div>
+        <div class="field">
+          <label>DM Override % <span class="type-hint">Optional — leave blank for default</span></label>
+          <input type="number" id="pdm-${pile.id}" value="${pile.dmOverride||''}" step="0.1" min="0" max="100" placeholder="e.g. 32" oninput="updatePileField('${pile.id}','dmOverride',this.value||null)">
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+}
+
+function removePile(id) {
+  pileData = pileData.filter(p => String(p.id) !== String(id));
+  document.getElementById(`pcard-${id}`)?.remove();
+  // Re-number headers
+  document.querySelectorAll('.pile-card').forEach((card, i) => {
+    const headerSpan = card.querySelector('.pile-card-header > span');
+    if (headerSpan) {
+      const nameSpan = headerSpan.querySelector('span');
+      headerSpan.childNodes[0].textContent = `Pile #${i+1}: `;
+    }
+  });
+  pileCount = document.querySelectorAll('.pile-card').length;
+}
+
+function updatePileName(id, val) {
+  const p = pileData.find(p => String(p.id) === String(id));
+  if (p) p.name = val;
+  const lbl = document.getElementById(`pname-label-${id}`);
+  if (lbl) lbl.textContent = val || 'New Pile';
+}
+
+function updatePileType(id, val) {
+  const p = pileData.find(p => String(p.id) === String(id));
+  if (p) p.type = val;
+  const badge = document.getElementById(`ptype-badge-${id}`);
+  if (badge) badge.textContent = val;
+}
+
+function updatePileField(id, field, val) {
+  const p = pileData.find(p => String(p.id) === String(id));
+  if (p) p[field] = val === null ? null : (isNaN(parseFloat(val)) ? val : parseFloat(val));
+}
+
+function validatePileStep() {
+  if (pileData.length === 0) return showAlert('pileAlert','error','✗ Add at least one pile');
+  for (let i = 0; i < pileData.length; i++) {
+    const p = pileData[i];
+    if (!p.name)         return showAlert('pileAlert','error',`✗ Pile ${i+1}: Product name is required`);
+    if (!p.horizArea)    return showAlert('pileAlert','error',`✗ Pile ${i+1}: Horizontal Area is required`);
+    if (!p.surfArea)     return showAlert('pileAlert','error',`✗ Pile ${i+1}: Surface Area is required`);
+    if (!p.fillVolYd3)   return showAlert('pileAlert','error',`✗ Pile ${i+1}: Fill Volume is required`);
+    if (!p.maxHt)        return showAlert('pileAlert','error',`✗ Pile ${i+1}: Max Height is required`);
+    if (!p.density)      return showAlert('pileAlert','error',`✗ Pile ${i+1}: Density is required`);
+  }
+  hideAlert('pileAlert');
+  buildImageStep();
+  nextStep();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STEP 4 — Images
+// ═══════════════════════════════════════════════════════════════════════════
+function buildImageStep() {
+  const container = document.getElementById('pileImageContainer');
+  container.innerHTML = '';
+  pileData.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginTop = '16px';
+    card.innerHTML = `
+      <div class="card-title">Pile #${i+1}: ${p.name}</div>
+      <div class="drop-zone" id="dz-${p.id}">
+        <input type="file" accept="image/*" onchange="handleImageUpload('${p.id}',this)">
+        <div class="drop-zone-icon">🖼️</div>
+        <div class="drop-zone-text"><strong>Drone image for this pile</strong><br>Drag & drop or click to browse</div>
+        <img class="drop-zone-preview" id="prev-${p.id}" ${pileImages[p.id] ? `src="${pileImages[p.id]}" style="display:block"` : ''}>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function handleImageUpload(key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pileImages[key] = e.target.result;
+    const prev = document.getElementById(`prev-${key}`);
+    if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CALCULATIONS (unrounded chain — matches R script)
+// ═══════════════════════════════════════════════════════════════════════════
+function round2(x) {
+  return Math.floor(Math.abs(x) + 0.5) * Math.sign(x);
+}
+
+function calcPile(p) {
+  const pd    = PRICES[p.type] || PRICES['Other'];
+  const dm    = p.dmOverride !== null && p.dmOverride !== undefined && p.dmOverride !== ''
+                  ? parseFloat(p.dmOverride) : pd.dm;
+  const price = pd.price;
+  const volFt3  = p.fillVolYd3 * 27;
+  const dens    = parseFloat(p.density);
+  const densities = [dens-2, dens-1, dens, dens+1, dens+2];
+  const dmTonsRaw = densities.map(d => d / 2000 * volFt3);
+  const dmTons    = dmTonsRaw.map(t => round2(t));
+  const asFedRaw  = dmTonsRaw[2] / (dm / 100);
+  const econRaw   = asFedRaw * price;
+  return {
+    volumeFt3:     round2(volFt3),
+    horizArea:     round2(p.horizArea),
+    surfArea:      round2(p.surfArea),
+    maxHt:         p.maxHt,
+    numTires:      round2(p.surfArea / 9),
+    densities,
+    dmTons,
+    dmTonsCenter:  round2(dmTonsRaw[2]),
+    asFedTons:     round2(asFedRaw),
+    econValue:     round2(econRaw),
+    dm,
+    price
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STEP 5 — Review
+// ═══════════════════════════════════════════════════════════════════════════
+function buildReview() {
+  const calcs = pileData.map(p => ({ pile: p, calc: calcPile(p) }));
+
+  // Summary table
+  let html = `<div style="overflow-x:auto"><table class="review-table">
+    <thead><tr>
+      <th>Pile #</th><th>Product</th><th>Volume (ft³)</th>
+      <th>DM Tons</th><th>As-Fed Tons</th><th>Economic Value</th><th>DM %</th>
+    </tr></thead><tbody>`;
+
+  let totalVol=0, totalDM=0, totalFed=0, totalEcon=0;
+  const typeMap = {};
+
+  calcs.forEach(({pile,calc}, i) => {
+    totalVol  += calc.volumeFt3;
+    totalDM   += calc.dmTonsCenter;
+    totalFed  += calc.asFedTons;
+    totalEcon += calc.econValue;
+    if (!typeMap[pile.type]) typeMap[pile.type] = {vol:0,dm:0,fed:0,econ:0,count:0};
+    typeMap[pile.type].vol   += calc.volumeFt3;
+    typeMap[pile.type].dm    += calc.dmTonsCenter;
+    typeMap[pile.type].fed   += calc.asFedTons;
+    typeMap[pile.type].econ  += calc.econValue;
+    typeMap[pile.type].count++;
+    html += `<tr>
+      <td>${i+1}</td>
+      <td>${pile.name}</td>
+      <td>${fmt(calc.volumeFt3)}</td>
+      <td>${fmt(calc.dmTonsCenter)}</td>
+      <td>${fmt(calc.asFedTons)}</td>
+      <td>${fmtDol(calc.econValue)}</td>
+      <td>${calc.dm}%</td>
+    </tr>`;
+  });
+
+  // Subtotals
+  const types = Object.keys(typeMap);
+  if (types.length > 1) {
+    types.forEach(t => {
+      if (typeMap[t].count < 2) return;
+      html += `<tr class="sub-row">
+        <td colspan="2">Total ${t}</td>
+        <td>${fmt(typeMap[t].vol)}</td>
+        <td>${fmt(typeMap[t].dm)}</td>
+        <td>${fmt(typeMap[t].fed)}</td>
+        <td>${fmtDol(typeMap[t].econ)}</td>
+        <td></td>
+      </tr>`;
+    });
+  }
+
+  html += `<tr class="total-row">
+    <td colspan="4" style="text-align:right;padding-right:16px">Total Economic Value</td>
+    <td>${fmt(totalFed)}</td>
+    <td>${fmtDol(totalEcon)}</td>
+    <td></td>
+  </tr>`;
+  html += '</tbody></table></div>';
+  document.getElementById('reviewTableContainer').innerHTML = html;
+
+  // Meta
+  const site = document.getElementById('siteName').value;
+  const date = fmtDate(document.getElementById('reportDate').value);
+  const prep = document.getElementById('preparerName').value;
+  const phone = document.getElementById('preparerPhone').value;
+  const email = document.getElementById('preparerEmail').value;
+  document.getElementById('reviewMeta').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.875rem">
+      <div><strong>Site:</strong> ${site}</div>
+      <div><strong>Date:</strong> ${date}</div>
+      <div><strong>Preparer:</strong> ${prep}</div>
+      <div><strong>Phone:</strong> ${phone}</div>
+      <div colspan="2"><strong>Email:</strong> ${email}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PDF GENERATION
+// ═══════════════════════════════════════════════════════════════════════════
+function generatePDF() {
+  const btn = document.getElementById('generateBtn');
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  btn.disabled = true;
+
+  setTimeout(async () => {
+    try {
+      await buildPDF();
+      nextStep();
+    } catch(e) {
+      console.error(e);
+      alert('PDF generation error: ' + e.message);
+    } finally {
+      btn.innerHTML = 'Generate PDF';
+      btn.disabled = false;
+    }
+  }, 100);
+}
+
+async function buildPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait' });
+
+  const W = 8.5, H = 11;
+  const calcs = pileData.map(p => ({ pile:p, calc:calcPile(p) }));
+
+  const site      = document.getElementById('siteName').value;
+  const dateStr   = fmtDate(document.getElementById('reportDate').value);
+  const prepName  = document.getElementById('preparerName').value;
+  const prepPhone = document.getElementById('preparerPhone').value;
+  const prepEmail = document.getElementById('preparerEmail').value;
+
+  // ── Colors ──
+  const DARK  = [42,73,87];
+  const GOLD  = [242,220,166];
+  const MID   = [68,84,106];
+  const SUB   = [92,116,126];
+  const LIGHT = [214,228,234];
+  const WHITE = [255,255,255];
+  const BLACK = [26,26,26];
+
+  const setFill = c => pdf.setFillColor(...c);
+  const setTxt  = c => pdf.setTextColor(...c);
+  const setDraw = c => pdf.setDrawColor(...c);
+
+  // ── Layout constants (+10% text, +15-20% gold banner) ───────────────
+  const HDR_H    = 1.00;   // header height (was 0.92)
+  const BANNER_H = 0.195;  // gold banner height (+20%, was 0.16)
+  const FOOTER_Y = 10.62;  // footer start y
+  const FOOTER_H = 0.38;   // footer height
+
+  // ── Draw header (shared) ─────────────────────────────────────────────
+  const drawHeader = () => {
+    setFill(DARK); pdf.rect(0, 0, W, HDR_H, 'F');
+
+    // ── LOGO PLACEHOLDER ─────────────────────────────────────────────
+    // To add the CFI logo permanently:
+    //   1. Convert cfiLogo.png to base64 at https://www.base64-image.de/
+    //   2. Replace the line below with:
+    //      const LOGO_B64 = 'data:image/png;base64,YOUR_BASE64_STRING_HERE';
+    //      pdf.addImage(LOGO_B64, 'PNG', W-2.55, 0.05, 2.45, HDR_H-0.10);
+    // ─────────────────────────────────────────────────────────────────
+
+    setTxt(WHITE);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(22);
+    pdf.text('Feed Survey Report', .35, .46);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(14);
+    pdf.text(site, .35, .74);
+
+    // Gold banner flush below header
+    setFill(GOLD); pdf.rect(0, HDR_H, W, BANNER_H, 'F');
+  };
+
+  // ── Draw footer (shared) ─────────────────────────────────────────────
+  const drawFooter = () => {
+    setFill(DARK); pdf.rect(0, FOOTER_Y, W, FOOTER_H, 'F');
+    setTxt(WHITE);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8.8);
+    pdf.text(dateStr, .3, FOOTER_Y + .175);
+    pdf.text(`${prepName}: ${prepPhone}`, W-.3, FOOTER_Y + .130, {align:'right'});
+    pdf.text(prepEmail,                   W-.3, FOOTER_Y + .270, {align:'right'});
+  };
+
+  // ── Banner text y position (center of banner) ─────────────────────
+  const bannerTxtY = HDR_H + BANNER_H * .66;
+
+  // ── PAGE 1: Summary ──────────────────────────────────────────────────
+  drawHeader();
+
+  // Banner text
+  setTxt(BLACK);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(16);
+  pdf.text('Dairy Summary', W/2, bannerTxtY, {align:'center'});
+
+  // Aerial overview image
+  const imgTop = HDR_H + BANNER_H + .02;
+  const imgBot = 4.28;
+  if (pileImages['overview']) {
+    try { pdf.addImage(pileImages['overview'], 'PNG', .35, imgTop, W-.70, imgBot-imgTop); }
+    catch(e) { drawImgPlaceholder(pdf, .35, imgTop, W-.70, imgBot-imgTop, '[Aerial Overview Image]'); }
+  } else {
+    drawImgPlaceholder(pdf, .35, imgTop, W-.70, imgBot-imgTop, '[Aerial Overview — upload in Step 4]');
+  }
+
+  // Products Summary table
+  const tblX = .35, tblW = W-.70;
+  const cols   = [.055,.155,.42,.56,.69,.82,.955];
+  const hdrs   = ['Pile\n#','Product','Volume\n(ft³)','Measured Dry\nMatter (tons)','As Fed\n(tons)','Economic\nValue ($)','DM\n(%)'];
+  const aligns = ['c','l','c','c','c','c','c'];
+
+  let ty   = imgBot + .02;
+  const rowH = .270;  // +10% from 0.245
+
+  // Products Summary title row
+  setFill(DARK); pdf.rect(tblX, ty, tblW, rowH, 'F');
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+  pdf.text('Products Summary', tblX+tblW/2, ty+rowH*.62, {align:'center'});
+  ty += rowH;
+
+  // Column header row
+  setFill(SUB); pdf.rect(tblX, ty, tblW, rowH, 'F');
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(7.7);
+  hdrs.forEach((h,j) => {
+    const cx = tblX + cols[j]*tblW;
+    const lines = h.split('\n');
+    lines.forEach((l,li) => pdf.text(l, cx + (aligns[j]==='l'?.015:0), ty+rowH*.36+li*.10, {align: aligns[j]==='l'?'left':'center'}));
+  });
+  ty += rowH;
+
+  // Data rows
+  const typeMap = {};
+  let totalFed=0, totalEcon=0;
+  calcs.forEach(({pile,calc},i) => {
+    totalFed  += calc.asFedTons;
+    totalEcon += calc.econValue;
+    if (!typeMap[pile.type]) typeMap[pile.type]={vol:0,dm:0,fed:0,econ:0,count:0};
+    typeMap[pile.type].vol  += calc.volumeFt3;
+    typeMap[pile.type].dm   += calc.dmTonsCenter;
+    typeMap[pile.type].fed  += calc.asFedTons;
+    typeMap[pile.type].econ += calc.econValue;
+    typeMap[pile.type].count++;
+
+    const bg = i%2===0 ? LIGHT : WHITE;
+    setFill(bg); pdf.rect(tblX, ty, tblW, rowH, 'F');
+    setDraw([200,200,200]); pdf.setLineWidth(.003);
+    pdf.rect(tblX, ty, tblW, rowH, 'S');
+    setTxt(BLACK); pdf.setFont('helvetica','normal'); pdf.setFontSize(8.8);
+
+    const vals = [String(i+1), pile.name, fmt(calc.volumeFt3), fmt(calc.dmTonsCenter), fmt(calc.asFedTons), fmtDol(calc.econValue), calc.dm+'%'];
+    vals.forEach((v,j) => {
+      const cx = tblX + cols[j]*tblW;
+      const al = aligns[j]==='l' ? 'left' : 'center';
+      pdf.text(v, cx + (aligns[j]==='l'?.012:0), ty+rowH*.64, {align:al});
+    });
+    ty += rowH;
+  });
+
+  // Subtotals
+  const tkeys = Object.keys(typeMap);
+  if (tkeys.length > 1) {
+    tkeys.forEach(t => {
+      if (typeMap[t].count < 2) return;
+      setFill([240,244,247]); pdf.rect(tblX, ty, tblW, rowH, 'F');
+      setDraw([200,200,200]); pdf.rect(tblX, ty, tblW, rowH, 'S');
+      setTxt(BLACK); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.8);
+      pdf.text(`Total ${t}`, tblX+.012, ty+rowH*.64);
+      pdf.text(fmt(typeMap[t].vol),        tblX+cols[2]*tblW, ty+rowH*.64, {align:'center'});
+      pdf.text(fmt(typeMap[t].dm),         tblX+cols[3]*tblW, ty+rowH*.64, {align:'center'});
+      pdf.text(fmt(typeMap[t].fed),        tblX+cols[4]*tblW, ty+rowH*.64, {align:'center'});
+      pdf.text(fmtDol(typeMap[t].econ),    tblX+cols[5]*tblW, ty+rowH*.64, {align:'center'});
+      ty += rowH;
+    });
+  }
+
+  // Total Economic Value row
+  setFill(DARK); pdf.rect(tblX, ty, tblW, rowH, 'F');
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.4);
+  pdf.text('Total Economic Value', tblX+cols[3]*tblW, ty+rowH*.64, {align:'right'});
+  setTxt(GOLD);
+  pdf.text(fmtDol(totalEcon), tblX+cols[5]*tblW, ty+rowH*.64, {align:'center'});
+  ty += rowH;
+
+  // Table border
+  setDraw(DARK); pdf.setLineWidth(.012);
+  pdf.rect(tblX, imgBot+.02, tblW, ty-(imgBot+.02), 'S');
+
+  // Notes (above footer)
+  const ny = FOOTER_Y - .16;
+  setTxt([68,68,68]); pdf.setFont('helvetica','normal'); pdf.setFontSize(7.7);
+  pdf.text('Report Notes: This report assumes that one tire is needed for every 9 square feet of surface area on each pile. PPK technology was utilized for post processing image locations for accurate volume calculations.', W/2, ny-.10, {align:'center', maxWidth: W-.7});
+  pdf.text('Feed Value Notes: Corn silage $50/ton @35% DM. Haylage $80/ton @40% DM. High Moisture Corn $120/ton @70% DM. ALL OTHER forage $40/ton @40% DM.', W/2, ny, {align:'center', maxWidth: W-.7});
+
+  drawFooter();
+
+  // ── PILE PAGES ────────────────────────────────────────────────────────
+  for (let i=0; i<calcs.length; i++) {
+    pdf.addPage();
+    const {pile,calc} = calcs[i];
+
+    drawHeader();
+
+    // Gold banner pile title (+16% font, banner already taller)
+    setTxt(BLACK); pdf.setFont('helvetica','bold'); pdf.setFontSize(16);
+    pdf.text(`Pile #${i+1}: ${pile.name}`, W/2, bannerTxtY, {align:'center'});
+
+    // Drone image
+    const pImgTop = HDR_H + BANNER_H + .02;
+    const pImgBot = 6.10;
+    const imgKey  = String(pile.id);
+    if (pileImages[imgKey]) {
+      try { pdf.addImage(pileImages[imgKey], 'PNG', .35, pImgTop, W-.70, pImgBot-pImgTop); }
+      catch(e) { drawImgPlaceholder(pdf, .35, pImgTop, W-.70, pImgBot-pImgTop, `[Pile #${i+1} Image]`); }
+    } else {
+      drawImgPlaceholder(pdf, .35, pImgTop, W-.70, pImgBot-pImgTop, `[Pile #${i+1} — upload image in Step 4]`);
+    }
+
+    // Slope legend
+    setFill([192,57,43]); pdf.rect(.36, pImgBot-.065, .065, .045, 'F');
+    setTxt(WHITE); pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
+    pdf.text('Red Steeper than 3:1', .44, pImgBot-.032);
+
+    // Two-column tables below image
+    const tbTop = pImgBot + .06;
+    const tbH   = FOOTER_Y - tbTop - .06;
+    const lx=.35, lw=2.90;
+    const rx=3.60, rw=W-.35-rx;
+    const rhl = tbH/6;
+    const rhr = tbH/7;
+
+    // LEFT: Pile Measurements header
+    setFill(DARK); pdf.rect(lx, tbTop, lw, rhl, 'F');
+    setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(12);
+    pdf.text('Pile Measurements', lx+lw/2, tbTop+rhl*.63, {align:'center'});
+
+    const measRows = [
+      ['Volume (ft³)',            fmt(calc.volumeFt3)],
+      ['Horizontal Area (ft²)',   fmt(calc.horizArea)],
+      ['Surface Area (ft²)',      fmt(calc.surfArea)],
+      ['Maximum Height (ft)',     String(calc.maxHt)],
+      ['Optimum Number of Tires', fmt(calc.numTires)]
+    ];
+    const leftFrac = .62;
+    const midX = lx + lw*leftFrac;
+
+    measRows.forEach((row,ri) => {
+      const ry = tbTop + (ri+1)*rhl;
+      const bg = ri%2===0 ? LIGHT : WHITE;
+      setFill([74,100,112]); pdf.rect(lx, ry, lw*leftFrac, rhl, 'F');
+      setDraw([58,80,90]); pdf.setLineWidth(.003); pdf.rect(lx, ry, lw*leftFrac, rhl, 'S');
+      setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.4);
+      pdf.text(row[0], lx+lw*leftFrac/2, ry+rhl*.62, {align:'center'});
+      setFill(bg); pdf.rect(midX, ry, lw*(1-leftFrac), rhl, 'F');
+      setDraw([200,200,200]); pdf.rect(midX, ry, lw*(1-leftFrac), rhl, 'S');
+      setTxt(BLACK); pdf.setFont('helvetica','normal'); pdf.setFontSize(9.9);
+      pdf.text(row[1], midX+lw*(1-leftFrac)/2, ry+rhl*.62, {align:'center'});
+    });
+    setDraw(DARK); pdf.setLineWidth(.012);
+    pdf.rect(lx, tbTop, lw, 6*rhl, 'S');
+
+    // RIGHT: Feed Properties
+    setFill(DARK); pdf.rect(rx, tbTop, rw, rhr, 'F');
+    setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(12);
+    pdf.text('Feed Properties', rx+rw/2, tbTop+rhr*.63, {align:'center'});
+
+    const subY = tbTop + rhr;
+    setFill([74,100,112]);
+    pdf.rect(rx,      subY, rw*.5, rhr, 'F');
+    pdf.rect(rx+rw*.5,subY, rw*.5, rhr, 'F');
+    setDraw([58,80,90]); pdf.setLineWidth(.003);
+    pdf.rect(rx,      subY, rw*.5, rhr, 'S');
+    pdf.rect(rx+rw*.5,subY, rw*.5, rhr, 'S');
+    setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.8);
+    pdf.text('Density\n(lb/ft³)',        rx+rw*.25, subY+rhr*.36, {align:'center'});
+    pdf.text('Measured Dry\nMatter Tons', rx+rw*.75, subY+rhr*.36, {align:'center'});
+
+    calc.densities.forEach((d,di) => {
+      const ry     = tbTop + (di+2)*rhr;
+      const isBold = di===2;
+      const bg     = di%2===0 ? LIGHT : WHITE;
+      const fpMid  = rx+rw*.5;
+      setFill(bg);
+      pdf.rect(rx,    ry, rw*.5, rhr, 'F');
+      pdf.rect(fpMid, ry, rw*.5, rhr, 'F');
+      setDraw([200,200,200]); pdf.setLineWidth(.003);
+      pdf.rect(rx,    ry, rw*.5, rhr, 'S');
+      pdf.rect(fpMid, ry, rw*.5, rhr, 'S');
+      setTxt(BLACK);
+      pdf.setFont('helvetica', isBold?'bold':'normal');
+      pdf.setFontSize(isBold?12:9.9);
+      pdf.text(String(d),            rx+rw*.25,  ry+rhr*.62, {align:'center'});
+      pdf.text(fmt(calc.dmTons[di]), fpMid+rw*.25, ry+rhr*.62, {align:'center'});
+    });
+    setDraw(DARK); pdf.setLineWidth(.012);
+    pdf.rect(rx, tbTop, rw, 7*rhr, 'S');
+
+    drawFooter();
+  }
+
+  // Save
+  const safeName = site.replace(/[^A-Za-z0-9_\-]/g,'_');
+  generatedFileName = `${safeName}_Report.pdf`;
+  generatedPDFBlob = pdf.output('blob');
+}
+
+function drawImgPlaceholder(pdf,x,y,w,h,label) {
+  pdf.setFillColor(224,224,224); pdf.rect(x,y,w,h,'F');
+  pdf.setTextColor(136,136,136); pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
+  pdf.text(label, x+w/2, y+h/2, {align:'center'});
+}
+
+function triggerDownload() {
+  if (!generatedPDFBlob) return;
+  const url = URL.createObjectURL(generatedPDFBlob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = generatedFileName;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function startNew() {
+  pileData=[]; pileImages={}; pileCount=0; generatedPDFBlob=null;
+  document.getElementById('pilesContainer').innerHTML='';
+  document.getElementById('pileImageContainer').innerHTML='';
+  document.getElementById('csvFile').value='';
+  document.getElementById('siteName').value='';
+  document.getElementById('reportDate').value='';
+  maxUnlocked=1; goToStep(1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function fmt(n)    { return Math.round(n).toLocaleString('en-US'); }
+function fmtDol(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+function fmtDate(s) {
+  if (!s) return '';
+  const d = new Date(s+'T12:00:00');
+  return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = `alert show alert-${type}`;
+  el.textContent = msg;
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  el.className = 'alert';
+  el.textContent = '';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('reportDate').value = today;
+
+  // Drag-and-drop on CSV zone
+  const csvZone = document.getElementById('csvDropZone');
+  csvZone.addEventListener('dragover', e => { e.preventDefault(); csvZone.classList.add('drag-over'); });
+  csvZone.addEventListener('dragleave', () => csvZone.classList.remove('drag-over'));
+  csvZone.addEventListener('drop', e => {
+    e.preventDefault(); csvZone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files[0]) {
+      document.getElementById('csvFile').files = files;
+      handleCSV(document.getElementById('csvFile'));
+    }
+  });
+
+  // Start with one empty pile card ready on step 3
+  addPile();
+});
+</script>
+</body>
+</html>
