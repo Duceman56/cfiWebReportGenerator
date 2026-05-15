@@ -662,6 +662,7 @@
       <p>Your CFI Feed Survey Report has been generated successfully.</p>
       <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
         <button class="btn btn-primary" id="downloadBtn" onclick="triggerDownload()">⬇ Download PDF</button>
+        <button class="btn btn-gold" onclick="exportJSON()">📋 Data Export</button>
         <button class="btn btn-secondary" onclick="startNew()">Start New Report</button>
       </div>
     </div>
@@ -1434,6 +1435,39 @@ function drawImgPlaceholder(pdf,x,y,w,h,label) {
   pdf.setFillColor(224,224,224); pdf.rect(x,y,w,h,'F');
   pdf.setTextColor(136,136,136); pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
   pdf.text(label, x+w/2, y+h/2, {align:'center'});
+}
+
+function exportJSON() {
+  const site = document.getElementById('siteName').value;
+  const data = {
+    siteName:      site,
+    reportDate:    document.getElementById('reportDate').value,
+    preparerName:  document.getElementById('preparerName').value,
+    preparerPhone: document.getElementById('preparerPhone').value,
+    preparerEmail: document.getElementById('preparerEmail').value,
+    exportedAt:    new Date().toISOString(),
+    piles: pileData.map(p => ({
+      name:       p.name,
+      type:       p.type,
+      horizArea:  p.horizArea,
+      surfArea:   p.surfArea,
+      fillVolYd3: p.fillVolYd3,
+      maxHt:      p.maxHt,
+      density:    p.density,
+      dmOverride: p.dmOverride || null
+    }))
+  };
+  const json     = JSON.stringify(data, null, 2);
+  const blob     = new Blob([json], { type: 'application/json' });
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  const safeName = site.replace(/[^A-Za-z0-9_\-]/g, '_');
+  a.href     = url;
+  a.download = `${safeName}_data.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function triggerDownload() {
