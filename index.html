@@ -1271,7 +1271,7 @@ async function buildPDF() {
 
   // Aerial overview image
   const imgTop = HDR_H + BANNER_H + .02;
-  const imgBot = 4.28;
+  const imgBot = 6.80;   // match pile pages - roughly half the page
   if (pileImages['overview']) {
     try { pdf.addImage(pileImages['overview'], 'PNG', .35, imgTop, W-.70, imgBot-imgTop); }
     catch(e) { drawImgPlaceholder(pdf, .35, imgTop, W-.70, imgBot-imgTop, '[Aerial Overview Image]'); }
@@ -1384,7 +1384,7 @@ async function buildPDF() {
 
     // Drone image
     const pImgTop = HDR_H + BANNER_H + .02;
-    const pImgBot = 6.10;
+    const pImgBot = 6.80;   // image takes up roughly half the page
     const imgKey  = String(pile.id);
     if (pileImages[imgKey]) {
       try { pdf.addImage(pileImages[imgKey], 'PNG', .35, pImgTop, W-.70, pImgBot-pImgTop); }
