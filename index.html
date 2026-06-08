@@ -1339,7 +1339,7 @@ async function buildPDF() {
       setFill([240,244,247]); pdf.rect(tblX, ty, tblW, rowH, 'F');
       setDraw([200,200,200]); pdf.rect(tblX, ty, tblW, rowH, 'S');
       setTxt(BLACK); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.8);
-      pdf.text(`Total ${t}`, tblX+.012, ty+rowH*.65);
+      pdf.text(`Total ${t}`, tblX + (cols[2]*tblW)/2, ty+rowH*.65, {align:'center'});
       pdf.text(fmt(typeMap[t].vol),        tblX+cols[2]*tblW, ty+rowH*.65, {align:'center'});
       pdf.text(fmt(typeMap[t].dm),         tblX+cols[3]*tblW, ty+rowH*.65, {align:'center'});
       pdf.text(fmt(typeMap[t].fed),        tblX+cols[4]*tblW, ty+rowH*.65, {align:'center'});
