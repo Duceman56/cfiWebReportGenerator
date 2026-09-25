@@ -812,6 +812,8 @@ function handleCSV(input) {
 
       showAlert('csvAlert', 'success', `✓ Parsed ${parsed.length} pile(s) from CSV`);
       document.getElementById('csvNextBtn').disabled = false;
+      // Auto-advance to Step 2
+      setTimeout(() => { maxUnlocked = Math.max(maxUnlocked, 2); goToStep(2); }, 600);
     } catch(err) {
       showAlert('csvAlert', 'error', '✗ ' + err.message);
     }
