@@ -567,12 +567,12 @@
     <div class="panel-desc">Upload your Propeller CSV export to auto-populate pile measurements, or skip to enter everything manually.</div>
 
     <div class="card">
-      <div class="card-title">Upload Propeller CSV</div>
+      <div class="card-title">Upload Propeller CSV or Previous Report JSON</div>
       <div class="csv-zone" id="csvDropZone">
-        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
+        <input type="file" id="csvFile" accept=".csv,.json" onchange="handleFileUpload(this)">
         <div class="csv-icon">📄</div>
-        <h3>Drop your CSV here or click to browse</h3>
-        <p>Propeller_Measurements_CSV_Report_*.csv</p>
+        <h3>Drop your file here or click to browse</h3>
+        <p>Propeller CSV export &nbsp;·&nbsp; or previous report JSON</p>
       </div>
       <div class="alert" id="csvAlert"></div>
     </div>
@@ -776,6 +776,58 @@ function prevStep() { goToStep(currentStep-1); }
 // ═══════════════════════════════════════════════════════════════════════════
 //  STEP 1 — CSV
 // ═══════════════════════════════════════════════════════════════════════════
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.name.toLowerCase().endsWith('.json')) {
+    loadJSON(file);
+  } else {
+    handleCSV(input);
+  }
+}
+
+function loadJSON(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Restore report info fields
+      if (data.siteName)      document.getElementById('siteName').value      = data.siteName;
+      if (data.reportDate)    document.getElementById('reportDate').value    = data.reportDate;
+      if (data.preparerName)  document.getElementById('preparerName').value  = data.preparerName;
+      if (data.preparerPhone) document.getElementById('preparerPhone').value = data.preparerPhone;
+      if (data.preparerEmail) document.getElementById('preparerEmail').value = data.preparerEmail;
+
+      // Restore pile data
+      if (data.piles && data.piles.length > 0) {
+        pileData = data.piles.map((p, i) => ({
+          id:          Date.now() + i,
+          name:        p.name        || '',
+          type:        p.type        || 'Haylage',
+          horizArea:   p.horizArea   || 0,
+          surfArea:    p.surfArea    || 0,
+          fillVolYd3:  p.fillVolYd3  || 0,
+          maxHt:       p.maxHt       || 0,
+          density:     p.density     || 16,
+          dmOverride:  p.dmOverride  || null
+        }));
+        buildPileCards();
+      }
+
+      showAlert('csvAlert', 'success', `✓ Loaded previous report — ${data.piles ? data.piles.length : 0} pile(s) restored. Re-upload images in Step 4.`);
+      document.getElementById('csvNextBtn').disabled = false;
+
+      // Auto-advance to Step 2
+      setTimeout(() => { maxUnlocked = Math.max(maxUnlocked, 2); goToStep(2); }, 800);
+
+    } catch(err) {
+      showAlert('csvAlert', 'error', '✗ Could not read JSON file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 function handleCSV(input) {
   const file = input.files[0];
   if (!file) return;
@@ -1645,7 +1697,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const files = e.dataTransfer.files;
     if (files[0]) {
       document.getElementById('csvFile').files = files;
-      handleCSV(document.getElementById('csvFile'));
+      handleFileUpload(document.getElementById('csvFile'));
     }
   });
 
