@@ -787,12 +787,28 @@ function handleCSV(input) {
       pileData = parsed;
       buildPileCards();
 
-      // Auto-fill site name from filename
-      // Format: "Propeller Measurements CSV Report - SiteName - Apr 30, 2026.csv"
-      const parts = file.name.replace('.csv','').split(' - ');
-      if (parts.length >= 2) {
-        document.getElementById('siteName').value = parts[1].trim();
-      }
+      // Auto-fill site name from filename + survey date from "From" column
+      const cleanName = file.name.replace('.csv','').replace(/_/g,' ');
+      const nameParts = cleanName.split(' - ');
+      let siteName = nameParts.length >= 2 ? nameParts[1].trim() : '';
+
+      // Get survey date from "From" column using a proper line-by-line parse
+      // We use a simple approach: find the From column index then read the raw
+      // text carefully since "Sep 17, 2026" contains a comma
+      try {
+        const rawText = e.target.result.replace(/^\uFEFF/, '').trim();
+        const rawLines = rawText.split('\n');
+        const rawHeaders = rawLines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+        const fromIdx = rawHeaders.indexOf('from');
+        if (fromIdx >= 0 && rawLines.length > 1) {
+          // Use splitCSVLine which handles quoted commas correctly
+          const firstVals = splitCSVLine(rawLines[1]).map(v => v.trim().replace(/^"|"$/g,''));
+          const fromDate  = firstVals[fromIdx] || '';
+          if (fromDate) siteName = siteName + ' - ' + fromDate;
+        }
+      } catch(ex) { /* date extraction failed, site name stays without date */ }
+
+      document.getElementById('siteName').value = siteName;
 
       showAlert('csvAlert', 'success', `✓ Parsed ${parsed.length} pile(s) from CSV`);
       document.getElementById('csvNextBtn').disabled = false;
@@ -811,7 +827,7 @@ function parseCSV(text) {
 
   const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
 
-  // Find columns
+  // Find columns — supports both old yd³ format and new ft³ (US) format
   const findCol = (...names) => {
     for (const n of names) {
       const idx = headers.findIndex(h => h.includes(n));
@@ -820,34 +836,55 @@ function parseCSV(text) {
     return -1;
   };
 
-  const colName  = findCol('measurement name', 'name');
-  const colVol   = findCol('volume (yd³) (cut)', 'volume (yd3) (cut)', 'volume');
-  const colSurf  = findCol('surface area');
-  const colHoriz = findCol('horizontal area');
+  const colName   = findCol('measurement name');
+  const colVolFt3 = findCol('volume (ft³ (us)) (cut)', 'volume (ft3 (us)) (cut)');
+  const colVolYd3 = findCol('volume (yd³) (cut)', 'volume (yd3) (cut)');
+  const colTerr   = findCol('terrain area');
+  const colHoriz  = findCol('horizontal area');
+  const colMaxEl  = findCol('max elevation');
+  const colMinEl  = findCol('min elevation');
 
-  if (colName < 0)  throw new Error('Cannot find "Measurement name" column');
-  if (colVol  < 0)  throw new Error('Cannot find "Volume (yd³) (cut)" column');
-  if (colSurf < 0)  throw new Error('Cannot find "Surface Area" column');
-  if (colHoriz < 0) throw new Error('Cannot find "Horizontal Area" column');
+  if (colName < 0) throw new Error('Cannot find "Measurement name" column');
+  if (colVolFt3 < 0 && colVolYd3 < 0) throw new Error('Cannot find volume column');
+  if (colTerr < 0)  throw new Error('Cannot find "Terrain area" column');
+  if (colHoriz < 0) throw new Error('Cannot find "Horizontal area" column');
+
+  const usingFt3 = colVolFt3 >= 0;
+  const colVol   = usingFt3 ? colVolFt3 : colVolYd3;
 
   const results = [];
   for (let i = 1; i < lines.length; i++) {
-    const vals = splitCSVLine(lines[i]).map(v => v.trim().replace(/^"|"$/g,''));
-    if (!vals[colName]) continue;
-    const name = vals[colName].trim();
-    const vol  = Math.abs(parseFloat(vals[colVol])  || 0);
-    const surf = parseFloat(vals[colSurf])  || 0;
-    const hor  = parseFloat(vals[colHoriz]) || 0;
+    const vals = splitCSVLine(lines[i]).map(v => v.trim().replace(/^"|"$/g,'').replace(/,/g,''));
+    const name = vals[colName] ? vals[colName].trim() : '';
+
+    // Skip empty rows and Total/summary rows
+    if (!name || name.toLowerCase() === 'total') continue;
+
+    const rawVol     = parseFloat(vals[colVol]) || 0;
+    const volAbs     = Math.abs(rawVol);
+    const surf       = parseFloat(vals[colTerr])  || 0;
+    const hor        = parseFloat(vals[colHoriz]) || 0;
+
+    // New format is already ft³ — convert to yd³ for internal calculations
+    // Old format was already yd³
+    const fillVolYd3 = usingFt3 ? volAbs / 27 : volAbs;
+
+    // Max height must be entered manually
+    const maxHt = 0;
+
+    // DM override must be entered manually
+    const dmOverride = null;
+
     results.push({
       id: i,
       name,
-      type: detectType(name),
-      horizArea:   hor,
-      surfArea:    surf,
-      fillVolYd3:  vol,
-      maxHt:       0,
-      density:     16,
-      dmOverride:  null
+      type:      detectType(name),
+      horizArea: hor,
+      surfArea:  surf,
+      fillVolYd3,
+      maxHt,
+      density:   16,
+      dmOverride
     });
   }
   if (results.length === 0) throw new Error('No valid data rows found');
