@@ -571,6 +571,28 @@
     <div class="panel-title">Import Drone Data</div>
     <div class="panel-desc">Upload your Propeller CSV export to auto-populate pile measurements, or skip to enter everything manually.</div>
 
+    <div class="card" style="background:#f0f4f7; border-color:#c5d0da;">
+      <div style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="toggleTip()">
+        <div style="font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--light-blue);">💡 Before You Upload — Quick Checklist</div>
+        <span id="tipChevron" style="color:var(--light-blue); font-size:.85rem;">▼</span>
+      </div>
+      <div id="tipContent" style="display:none; margin-top:14px; font-size:.85rem; color:#4a6070; line-height:1.7;">
+        <strong style="color:var(--dark);">CSV export from Propeller:</strong>
+        <ol style="margin: 8px 0 12px 18px;">
+          <li>Open your Propeller CSV in Excel or a text editor</li>
+          <li><strong>Reorder the rows</strong> so piles appear in the order you want them in the report — the tool reads them top to bottom</li>
+          <li>Save and close before uploading</li>
+        </ol>
+        <strong style="color:var(--dark);">After upload you will still need to enter manually:</strong>
+        <ul style="margin: 8px 0 0 18px;">
+          <li>Max Height (ft) — from Propeller browser view</li>
+          <li>Center Density (lb/ft³) — typically 16 for Haylage, 18 for High Moisture</li>
+          <li>DM Override % — only if this pile differs from the product type default</li>
+          <li>Drone images — uploaded in Step 4</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">Upload Propeller CSV or Previous Report JSON</div>
       <div class="csv-zone" id="csvDropZone">
@@ -781,6 +803,14 @@ function prevStep() { goToStep(currentStep-1); }
 // ═══════════════════════════════════════════════════════════════════════════
 //  STEP 1 — CSV
 // ═══════════════════════════════════════════════════════════════════════════
+function toggleTip() {
+  const content  = document.getElementById('tipContent');
+  const chevron  = document.getElementById('tipChevron');
+  const open     = content.style.display === 'block';
+  content.style.display = open ? 'none' : 'block';
+  chevron.textContent   = open ? '▼' : '▲';
+}
+
 function handleFileUpload(input) {
   const file = input.files[0];
   if (!file) return;
