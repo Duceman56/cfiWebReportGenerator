@@ -1052,7 +1052,9 @@ function addPileCard(pile) {
       <span>Pile #${num}: <span id="pname-label-${pile.id}">${pile.name || 'New Pile'}</span></span>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="pile-badge" id="ptype-badge-${pile.id}">${pile.type}</span>
-        <button class="btn-remove" onclick="removePile('${pile.id}')">Remove</button>
+        <button class="btn-remove" onclick="movePile('${pile.id}', -1)" title="Move up">▲</button>
+      <button class="btn-remove" onclick="movePile('${pile.id}', 1)"  title="Move down">▼</button>
+      <button class="btn-remove" onclick="removePile('${pile.id}')">Remove</button>
       </div>
     </div>
     <div class="pile-card-body">
@@ -1103,6 +1105,17 @@ function addPileCard(pile) {
       </div>
     </div>`;
   container.appendChild(div);
+}
+
+function movePile(id, direction) {
+  const idx = pileData.findIndex(p => String(p.id) === String(id));
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= pileData.length) return;
+  // Swap in data array
+  [pileData[idx], pileData[newIdx]] = [pileData[newIdx], pileData[idx]];
+  // Rebuild cards
+  buildPileCards();
 }
 
 function removePile(id) {
