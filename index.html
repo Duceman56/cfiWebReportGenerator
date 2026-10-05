@@ -1427,17 +1427,33 @@ async function buildPDF() {
   const aligns = ['c','l','c','c','c','c','c'];
 
   let ty   = imgBot + .02;
-  const rowH = .270;  // +10% from 0.245
+
+  // Dynamically size rows to fit table + notes + footer
+  // Count total rows: title + header + data + subtotals + total
+  const subtotalCount = Object.values((() => {
+    const tm = {};
+    calcs.forEach(({pile}) => { tm[pile.type] = (tm[pile.type]||0)+1; });
+    return tm;
+  })()).filter(c => c >= 2).length;
+  const totalRows = 2 + calcs.length + subtotalCount + 1; // title+header+data+subs+total
+  const tableSpace = FOOTER_Y - .32 - (imgBot + .02) - .26; // space minus notes area
+  const rowH = Math.min(.270, tableSpace / totalRows);
+  // Scale fonts proportionally with row height
+  const rowScale  = rowH / .270;
+  const tblTitleSz = Math.max(7.5, 11   * rowScale);
+  const hdrSz     = Math.max(6.0,  7.7  * rowScale);
+  const dataSz    = Math.max(6.5,  8.8  * rowScale);
+  const totalSz   = Math.max(7.0,  9.4  * rowScale);
 
   // Products Summary title row
   setFill(DARK); pdf.rect(tblX, ty, tblW, rowH, 'F');
-  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(tblTitleSz);
   pdf.text('Products Summary', tblX+tblW/2, ty+rowH*.62, {align:'center'});
   ty += rowH;
 
   // Column header row
   setFill(SUB); pdf.rect(tblX, ty, tblW, rowH, 'F');
-  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(7.7);
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(hdrSz);
   hdrs.forEach((h,j) => {
     const cx = tblX + cols[j]*tblW;
     pdf.text(h, cx + (aligns[j]==='l'?.015:0), ty+rowH*.65, {align: aligns[j]==='l'?'left':'center'});
@@ -1461,7 +1477,7 @@ async function buildPDF() {
     setFill(bg); pdf.rect(tblX, ty, tblW, rowH, 'F');
     setDraw([200,200,200]); pdf.setLineWidth(.003);
     pdf.rect(tblX, ty, tblW, rowH, 'S');
-    setTxt(BLACK); pdf.setFont('helvetica','normal'); pdf.setFontSize(8.8);
+    setTxt(BLACK); pdf.setFont('helvetica','normal'); pdf.setFontSize(dataSz);
 
     const vals = [String(i+1), pile.name, fmt(calc.volumeFt3), fmt(calc.dmTonsCenter), fmt(calc.asFedTons), fmtDol(calc.econValue), calc.dm+'%'];
     vals.forEach((v,j) => {
@@ -1479,7 +1495,7 @@ async function buildPDF() {
       if (typeMap[t].count < 2) return;
       setFill([240,244,247]); pdf.rect(tblX, ty, tblW, rowH, 'F');
       setDraw([200,200,200]); pdf.rect(tblX, ty, tblW, rowH, 'S');
-      setTxt(BLACK); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.8);
+      setTxt(BLACK); pdf.setFont('helvetica','bold'); pdf.setFontSize(dataSz);
       pdf.text(`Total ${t}`, tblX + (cols[2]*tblW)/2, ty+rowH*.65, {align:'center'});
       pdf.text(fmt(typeMap[t].vol),        tblX+cols[2]*tblW, ty+rowH*.65, {align:'center'});
       pdf.text(fmt(typeMap[t].dm),         tblX+cols[3]*tblW, ty+rowH*.65, {align:'center'});
@@ -1491,7 +1507,7 @@ async function buildPDF() {
 
   // Total Economic Value row
   setFill(DARK); pdf.rect(tblX, ty, tblW, rowH, 'F');
-  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.4);
+  setTxt(WHITE); pdf.setFont('helvetica','bold'); pdf.setFontSize(totalSz);
   pdf.text('Total Economic Value', tblX+cols[3]*tblW, ty+rowH*.65, {align:'right'});
   setTxt(GOLD);
   pdf.text(fmtDol(totalEcon), tblX+cols[5]*tblW, ty+rowH*.65, {align:'center'});
