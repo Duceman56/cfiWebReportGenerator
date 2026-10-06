@@ -932,9 +932,6 @@ function parseCSV(text) {
   const colVolYd3 = findCol('volume (yd³) (cut)', 'volume (yd3) (cut)');
   const colTerr   = findCol('terrain area');
   const colHoriz  = findCol('horizontal area');
-  const colMaxEl  = findCol('max elevation');
-  const colMinEl  = findCol('min elevation');
-
   if (colName < 0) throw new Error('Cannot find "Measurement name" column');
   if (colVolFt3 < 0 && colVolYd3 < 0) throw new Error('Cannot find volume column');
   if (colTerr < 0)  throw new Error('Cannot find "Terrain area" column');
@@ -1007,7 +1004,7 @@ function skipToManual() {
   if (pileData.length === 0) {
     pileData = [];
     buildPileCards();
-    if (pileCount === 0) addPile();
+    if (document.querySelectorAll('.pile-card').length === 0) addPile();
   }
   maxUnlocked = Math.max(maxUnlocked, 2);
   goToStep(2);
@@ -1033,7 +1030,6 @@ function validateInfoStep() {
 function buildPileCards() {
   const container = document.getElementById('pilesContainer');
   container.innerHTML = '';
-  pileCount = 0;
   pileData.forEach(p => addPileCard(p));
 }
 
@@ -1043,9 +1039,8 @@ function addPile() {
 }
 
 function addPileCard(pile) {
-  pileCount++;
-  const num = pileCount;
   const container = document.getElementById('pilesContainer');
+  const num = container.querySelectorAll('.pile-card').length + 1;
   const div = document.createElement('div');
   div.className = 'pile-card';
   div.id = `pcard-${pile.id}`;
@@ -1055,8 +1050,8 @@ function addPileCard(pile) {
       <div style="display:flex;align-items:center;gap:8px">
         <span class="pile-badge" id="ptype-badge-${pile.id}">${pile.type}</span>
         <button class="btn-remove" onclick="movePile('${pile.id}', -1)" title="Move up">▲</button>
-      <button class="btn-remove" onclick="movePile('${pile.id}', 1)"  title="Move down">▼</button>
-      <button class="btn-remove" onclick="removePile('${pile.id}')">Remove</button>
+        <button class="btn-remove" onclick="movePile('${pile.id}', 1)"  title="Move down">▼</button>
+        <button class="btn-remove" onclick="removePile('${pile.id}')">Remove</button>
       </div>
     </div>
     <div class="pile-card-body">
@@ -1131,7 +1126,7 @@ function removePile(id) {
       headerSpan.childNodes[0].textContent = `Pile #${i+1}: `;
     }
   });
-  pileCount = document.querySelectorAll('.pile-card').length;
+
 }
 
 function updatePileName(id, val) {
@@ -1632,10 +1627,20 @@ async function buildPDF() {
     drawFooter();
   }
 
+  // Post-process raw PDF bytes to set /PageLayout /SinglePage
+  // This makes Adobe Reader snap page-by-page instead of continuous scroll
+  const rawBuf  = pdf.output('arraybuffer');
+  const bytes   = new Uint8Array(rawBuf);
+  let pdfStr    = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
+  pdfStr = pdfStr.replace('/PageLayout /OneColumn', '/PageLayout /SinglePage');
+  pdfStr = pdfStr.replace('/OpenAction [3 0 R /FitH null]\n', '');
+  const fixedBytes = new Uint8Array(pdfStr.length);
+  for (let i = 0; i < pdfStr.length; i++) fixedBytes[i] = pdfStr.charCodeAt(i);
+
   // Save and show preview
   const safeName = site.replace(/[^A-Za-z0-9_\-]/g,'_');
   generatedFileName = `${safeName}_Report.pdf`;
-  generatedPDFBlob = pdf.output('blob');
+  generatedPDFBlob = new Blob([fixedBytes], { type: 'application/pdf' });
 
   // Populate preview iframe
   const previewUrl = URL.createObjectURL(generatedPDFBlob);
@@ -1723,7 +1728,8 @@ function startNew() {
   document.getElementById('csvFile').value='';
   document.getElementById('siteName').value='';
   document.getElementById('reportDate').value='';
-  maxUnlocked=1; goToStep(1);
+  maxUnlocked=1;
+  goToStep(1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
