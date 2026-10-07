@@ -652,15 +652,16 @@
           <input type="email" id="preparerEmail" placeholder="Email address">
         </div>
       </div>
-      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-        <label style="font-size:.78rem; color:var(--light-blue); margin:0;">
-          First time on this machine?
-        </label>
-        <label class="btn btn-secondary" style="padding:6px 14px; font-size:.78rem; cursor:pointer; margin:0;">
-          📂 Load Preparer JSON
-          <input type="file" accept=".json" style="display:none;" onchange="loadPreparerJSON(this)">
-        </label>
-        <span id="preparerLoadStatus" style="font-size:.78rem; color:var(--success); display:none;">✓ Saved to this browser</span>
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem; color:var(--light-blue); font-weight:700; margin-bottom:8px;">First time on this machine? Load your preparer info:</div>
+        <div id="preparerDropZone" style="border:2px dashed #c5d0da; border-radius:6px; padding:14px 16px; text-align:center; cursor:pointer; background:#fafbfc; position:relative; transition:all .2s;"
+             ondragover="event.preventDefault(); this.style.borderColor='var(--dark)'; this.style.background='#f0f4f7';"
+             ondragleave="this.style.borderColor='#c5d0da'; this.style.background='#fafbfc';"
+             ondrop="event.preventDefault(); this.style.borderColor='#c5d0da'; this.style.background='#fafbfc'; handlePreparerDrop(event);">
+          <input type="file" accept=".json" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;" onchange="loadPreparerJSON(this)">
+          <span style="font-size:.85rem; color:#7a8a9a;">📂 <strong style="color:var(--dark);">Click to browse</strong> or drag &amp; drop <code>cfi_preparer.json</code></span>
+        </div>
+        <span id="preparerLoadStatus" style="font-size:.78rem; color:var(--success); display:none; margin-top:6px; display:none;">✓ Preparer info saved to this browser</span>
       </div>
     </div>
 
@@ -1766,6 +1767,13 @@ function hideAlert(id) {
 }
 
 // ── Preparer localStorage ─────────────────────────────────────────────────
+function handlePreparerDrop(event) {
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  const fakeInput = { files: [file] };
+  loadPreparerJSON(fakeInput);
+}
+
 function loadPreparerJSON(input) {
   const file = input.files[0];
   if (!file) return;
