@@ -639,18 +639,28 @@
       <div class="form-row full">
         <div class="field">
           <label>Preparer Name <span class="required">*</span></label>
-          <input type="text" id="preparerName" value="Kory Duerst">
+          <input type="text" id="preparerName" placeholder="Preparer name">
         </div>
       </div>
       <div class="form-row" style="margin-top:14px">
         <div class="field">
           <label>Phone</label>
-          <input type="tel" id="preparerPhone" value="608-886-6451">
+          <input type="tel" id="preparerPhone" placeholder="Phone number">
         </div>
         <div class="field">
           <label>Email</label>
-          <input type="email" id="preparerEmail" value="Kory@corefunctionalingredients.com">
+          <input type="email" id="preparerEmail" placeholder="Email address">
         </div>
+      </div>
+      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:.78rem; color:var(--light-blue); margin:0;">
+          First time on this machine?
+        </label>
+        <label class="btn btn-secondary" style="padding:6px 14px; font-size:.78rem; cursor:pointer; margin:0;">
+          📂 Load Preparer JSON
+          <input type="file" accept=".json" style="display:none;" onchange="loadPreparerJSON(this)">
+        </label>
+        <span id="preparerLoadStatus" style="font-size:.78rem; color:var(--success); display:none;">✓ Saved to this browser</span>
       </div>
     </div>
 
@@ -832,9 +842,10 @@ function loadJSON(file) {
       // Restore report info fields
       if (data.siteName)      document.getElementById('siteName').value      = data.siteName;
       if (data.reportDate)    document.getElementById('reportDate').value    = data.reportDate;
-      if (data.preparerName)  document.getElementById('preparerName').value  = data.preparerName;
-      if (data.preparerPhone) document.getElementById('preparerPhone').value = data.preparerPhone;
-      if (data.preparerEmail) document.getElementById('preparerEmail').value = data.preparerEmail;
+      // Preparer info: use JSON value if present, else fall back to localStorage
+      document.getElementById('preparerName').value  = data.preparerName  || localStorage.getItem('cfi_preparerName')  || '';
+      document.getElementById('preparerPhone').value = data.preparerPhone || localStorage.getItem('cfi_preparerPhone') || '';
+      document.getElementById('preparerEmail').value = data.preparerEmail || localStorage.getItem('cfi_preparerEmail') || '';
 
       // Restore pile data
       if (data.piles && data.piles.length > 0) {
@@ -1754,11 +1765,60 @@ function hideAlert(id) {
   el.textContent = '';
 }
 
+// ── Preparer localStorage ─────────────────────────────────────────────────
+function loadPreparerJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.preparerName)  localStorage.setItem('cfi_preparerName',  data.preparerName);
+      if (data.preparerPhone) localStorage.setItem('cfi_preparerPhone', data.preparerPhone);
+      if (data.preparerEmail) localStorage.setItem('cfi_preparerEmail', data.preparerEmail);
+      applyPreparerDefaults();
+      const status = document.getElementById('preparerLoadStatus');
+      if (status) { status.style.display = 'inline'; setTimeout(() => status.style.display = 'none', 3000); }
+    } catch(err) {
+      alert('Could not read preparer JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function applyPreparerDefaults() {
+  const name  = localStorage.getItem('cfi_preparerName');
+  const phone = localStorage.getItem('cfi_preparerPhone');
+  const email = localStorage.getItem('cfi_preparerEmail');
+  if (name)  { const el = document.getElementById('preparerName');  if (el && !el.value) el.value = name; }
+  if (phone) { const el = document.getElementById('preparerPhone'); if (el && !el.value) el.value = phone; }
+  if (email) { const el = document.getElementById('preparerEmail'); if (el && !el.value) el.value = email; }
+}
+
+// Save preparer info to localStorage whenever fields change
+function savePreparerToStorage() {
+  const name  = document.getElementById('preparerName')?.value;
+  const phone = document.getElementById('preparerPhone')?.value;
+  const email = document.getElementById('preparerEmail')?.value;
+  if (name)  localStorage.setItem('cfi_preparerName',  name);
+  if (phone) localStorage.setItem('cfi_preparerPhone', phone);
+  if (email) localStorage.setItem('cfi_preparerEmail', email);
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Set today's date
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('reportDate').value = today;
+
+  // Load preparer info from localStorage if available
+  applyPreparerDefaults();
+
+  // Auto-save preparer fields on change
+  ['preparerName','preparerPhone','preparerEmail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', savePreparerToStorage);
+  });
 
   // Drag-and-drop on CSV zone
   const csvZone = document.getElementById('csvDropZone');
