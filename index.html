@@ -228,6 +228,8 @@
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
+  /* Prevent scroll from changing number values */
+  input[type=number] { pointer-events: auto; }
 
   /* ── Pile Cards ── */
   .pile-card {
@@ -638,7 +640,7 @@
       <div class="card-title">Preparer Information</div>
       <div class="form-row full">
         <div class="field">
-          <label>Preparer Name <span class="required">*</span></label>
+          <label>Preparer Name</label>
           <input type="text" id="preparerName" placeholder="Preparer name">
         </div>
       </div>
@@ -1031,7 +1033,7 @@ function validateInfoStep() {
   const name = document.getElementById('preparerName').value.trim();
   if (!site) return showAlert('infoAlert','error','✗ Site name is required');
   if (!date) return showAlert('infoAlert','error','✗ Report date is required');
-  if (!name) return showAlert('infoAlert','error','✗ Preparer name is required');
+
   hideAlert('infoAlert');
   nextStep();
 }
@@ -1812,6 +1814,13 @@ function savePreparerToStorage() {
   if (phone) localStorage.setItem('cfi_preparerPhone', phone);
   if (email) localStorage.setItem('cfi_preparerEmail', email);
 }
+
+// ── Prevent scroll wheel from changing number inputs ──────────────────────
+document.addEventListener('wheel', (e) => {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+}, { passive: true });
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
