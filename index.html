@@ -786,9 +786,14 @@ const PRICES = {
 };
 
 const PRODUCT_KEYWORDS = {
+  // High Moisture checked first — earlage, HMC, etc.
   'High Moisture': ['high moisture','high-moisture','hmc','hm corn','earlage'],
-  'Corn Silage':   ['corn silage','cornsilage','\\bcs\\b'],
-  'Haylage':       ['haylage','hay lage','alfalfa','grass silage','ryelage','sorghum silage','\\bhay\\b'],
+  // Corn Silage — includes BMR (brown mid-rib corn silage per Kory)
+  'Corn Silage':   ['corn silage','cornsilage','\\bcs\\b','\\bbmr\\b'],
+  // Haylage — alfalfa (any crop, e.g. "1st Crop", "2nd Crop", "3rd Crop", "4th Crop", "5th Crop")
+  // "Crop" in name = alfalfa haylage per Kory
+  // "New Seeding" = Other (falls through to default)
+  'Haylage':       ['haylage','hay lage','alfalfa','grass silage','ryelage','sorghum silage','\\bhay\\b','\\bcrop\\b'],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
