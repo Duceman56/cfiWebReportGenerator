@@ -1575,10 +1575,22 @@ async function buildPDF() {
       drawImgPlaceholder(pdf, .35, pImgTop, W-.70, pImgBot-pImgTop, `[Pile #${i+1} — upload image in Step 4]`);
     }
 
-    // Slope legend
-    setFill([192,57,43]); pdf.rect(.36, pImgBot-.065, .065, .045, 'F');
-    setTxt(WHITE); pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
-    pdf.text('Red Steeper than 3:1', .44, pImgBot-.032);
+    // Slope legend — semi-transparent dark background for readability
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5);
+    const legTxtW = pdf.getTextWidth('Red Steeper than 3:1');
+    const swatchW = .055, swatchPad = .07, textPad = .09, padR = .07;
+    const legW2   = swatchPad + swatchW + textPad + legTxtW + padR;
+    const legH2   = .118;
+    const legX2   = .50, legY2 = pImgBot - legH2 - .018;
+    pdf.saveGraphicsState();
+    pdf.setGState(pdf.GState({ opacity: 0.55 }));
+    setFill([20,20,20]); pdf.roundedRect(legX2, legY2, legW2, legH2, .025, .025, 'F');
+    pdf.restoreGraphicsState();
+    // Red swatch centered vertically
+    setFill([192,57,43]); pdf.rect(legX2+swatchPad, legY2+(legH2-.036)/2, swatchW, .036, 'F');
+    // Text
+    setTxt(WHITE);
+    pdf.text('Red Steeper than 3:1', legX2+swatchPad+swatchW+textPad, legY2+legH2*.70);
 
     // Two-column tables below image
     const tbTop = pImgBot + .06;
