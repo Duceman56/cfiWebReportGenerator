@@ -1780,6 +1780,17 @@ function startNew() {
   document.getElementById('csvFile').value='';
   document.getElementById('siteName').value='';
   document.getElementById('reportDate').value='';
+  document.getElementById('preparerName').value='';
+  document.getElementById('preparerPhone').value='';
+  document.getElementById('preparerEmail').value='';
+  document.getElementById('pdfFileSize').textContent='';
+  hideAlert('csvAlert');
+  hideAlert('infoAlert');
+  hideAlert('pileAlert');
+  // Re-apply preparer defaults from localStorage
+  applyPreparerDefaults();
+  // Reset today's date
+  document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
   maxUnlocked=1;
   goToStep(1);
 }
@@ -1859,6 +1870,13 @@ document.addEventListener('wheel', (e) => {
     document.activeElement.blur();
   }
 }, { passive: true });
+
+// ── Block e, E, +, - from number inputs (scientific notation not needed) ──
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    if (['e','E','+','-'].includes(e.key)) e.preventDefault();
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
