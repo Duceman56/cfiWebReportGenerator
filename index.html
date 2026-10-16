@@ -867,7 +867,7 @@ function loadJSON(file) {
           surfArea:    p.surfArea    || 0,
           fillVolYd3:  p.fillVolYd3  || 0,
           maxHt:       p.maxHt       || 0,
-          density:     p.density     || 16,
+          density:     p.density     || 0,
           dmOverride:  p.dmOverride  || null
         }));
         buildPileCards();
@@ -992,7 +992,7 @@ function parseCSV(text) {
       surfArea:  surf,
       fillVolYd3,
       maxHt,
-      density:   16,
+      density:   0,
       dmOverride
     });
   }
@@ -1055,7 +1055,7 @@ function buildPileCards() {
 }
 
 function addPile() {
-  pileData.push({ id: Date.now(), name:'', type:'Haylage', horizArea:0, surfArea:0, fillVolYd3:0, maxHt:0, density:16, dmOverride:null });
+  pileData.push({ id: Date.now(), name:'', type:'Haylage', horizArea:0, surfArea:0, fillVolYd3:0, maxHt:0, density:0, dmOverride:null });
   addPileCard(pileData[pileData.length-1]);
 }
 
@@ -1086,10 +1086,10 @@ function addPileCard(pile) {
         <div class="field">
           <label>Product Type <span class="required">*</span></label>
           <select id="pt-${pile.id}" onchange="updatePileType('${pile.id}',this.value)">
-            <option value="Haylage"       ${pile.type==='Haylage'?'selected':''}>Haylage (Alfalfa, Crop, Grass Silage, Ryelage) — $80/ton @ 40% DM</option>
-            <option value="Corn Silage"   ${pile.type==='Corn Silage'?'selected':''}>Corn Silage (BMR, CS) — $50/ton @ 35% DM</option>
-            <option value="High Moisture" ${pile.type==='High Moisture'?'selected':''}>High Moisture (HMC, Earlage, Snaplage) — $120/ton @ 70% DM</option>
-            <option value="Other"         ${pile.type==='Other'?'selected':''}>Other (Oats, Peas, New Seeding, Straw) — $40/ton @ 40% DM</option>
+            <option value="Haylage"       ${pile.type==='Haylage'?'selected':''}>Haylage (Alfalfa, Crop, Ryelage) $80/ton @ 40% DM</option>
+            <option value="Corn Silage"   ${pile.type==='Corn Silage'?'selected':''}>Corn Silage (BMR, CS) $50/ton @ 35% DM</option>
+            <option value="High Moisture" ${pile.type==='High Moisture'?'selected':''}>HMC (Earlage, Snaplage) $120/ton @ 70% DM</option>
+            <option value="Other"         ${pile.type==='Other'?'selected':''}>Other (Oats, Peas, New Seeding, Straw) $40/ton @ 40% DM</option>
           </select>
         </div>
       </div>
@@ -1114,7 +1114,7 @@ function addPileCard(pile) {
         </div>
         <div class="field">
           <label>Center Density (lb/ft³) <span class="required">*</span></label>
-          <input type="number" id="pd-${pile.id}" value="${pile.density||16}" step="1" min="1" oninput="updatePileField('${pile.id}','density',this.value)">
+          <input type="number" id="pd-${pile.id}" value="${pile.density||''}" step="1" min="1" placeholder="lb/ft³" oninput="updatePileField('${pile.id}','density',this.value)">
         </div>
         <div class="field">
           <label>DM Override % <span class="type-hint">Optional — leave blank for default</span></label>
