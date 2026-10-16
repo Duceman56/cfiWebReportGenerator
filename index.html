@@ -787,13 +787,14 @@ const PRICES = {
 
 const PRODUCT_KEYWORDS = {
   // High Moisture checked first — earlage, HMC, etc.
-  'High Moisture': ['high moisture','high-moisture','hmc','hm corn','earlage'],
+  'High Moisture': ['high moisture','high-moisture','hmc','hm corn','earlage','snaplage'],
   // Corn Silage — includes BMR (brown mid-rib corn silage per Kory)
   'Corn Silage':   ['corn silage','cornsilage','\\bcs\\b','\\bbmr\\b'],
   // Haylage — alfalfa (any crop, e.g. "1st Crop", "2nd Crop", "3rd Crop", "4th Crop", "5th Crop")
   // "Crop" in name = alfalfa haylage per Kory
   // "New Seeding" = Other (falls through to default)
   'Haylage':       ['haylage','hay lage','alfalfa','grass silage','ryelage','sorghum silage','\\bhay\\b','\\bcrop\\b'],
+  'Earlage':       ['earlage'],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1085,10 +1086,10 @@ function addPileCard(pile) {
         <div class="field">
           <label>Product Type <span class="required">*</span></label>
           <select id="pt-${pile.id}" onchange="updatePileType('${pile.id}',this.value)">
-            <option value="Haylage"       ${pile.type==='Haylage'?'selected':''}>Haylage — $80/ton @ 40% DM</option>
-            <option value="Corn Silage"   ${pile.type==='Corn Silage'?'selected':''}>Corn Silage — $50/ton @ 35% DM</option>
-            <option value="High Moisture" ${pile.type==='High Moisture'?'selected':''}>High Moisture — $120/ton @ 70% DM</option>
-            <option value="Other"         ${pile.type==='Other'?'selected':''}>Other — $40/ton @ 40% DM</option>
+            <option value="Haylage"       ${pile.type==='Haylage'?'selected':''}>Haylage (Alfalfa, Crop, Grass Silage, Ryelage) — $80/ton @ 40% DM</option>
+            <option value="Corn Silage"   ${pile.type==='Corn Silage'?'selected':''}>Corn Silage (BMR, CS) — $50/ton @ 35% DM</option>
+            <option value="High Moisture" ${pile.type==='High Moisture'?'selected':''}>High Moisture (HMC, Earlage, Snaplage) — $120/ton @ 70% DM</option>
+            <option value="Other"         ${pile.type==='Other'?'selected':''}>Other (Oats, Peas, New Seeding, Straw) — $40/ton @ 40% DM</option>
           </select>
         </div>
       </div>
@@ -1554,7 +1555,7 @@ async function buildPDF() {
   const ny = FOOTER_Y - (lineH * 4) - noteGap + .06;
   const noteCx  = tblX + tblW / 2;  // center of table
   pdf.text('Report Notes: This report assumes that one tire is needed for every 9 square feet of surface area on each pile. PPK technology was utilized for post processing image locations for accurate volume calculations.', noteCx, ny, {align:'center', maxWidth: tblW});
-  pdf.text('Feed Value Notes: Corn silage $50/ton @35% DM. Haylage $80/ton @40% DM. High Moisture Corn $120/ton @70% DM. ALL OTHER forage $40/ton @40% DM.', noteCx, ny + lineH * 2 + noteGap, {align:'center', maxWidth: tblW});
+  pdf.text('Feed Value Notes: Corn Silage $50/ton @35% DM. Haylage $80/ton @40% DM. High Moisture Corn $120/ton @70% DM. ALL OTHER forage $40/ton @40% DM.', noteCx, ny + lineH * 2 + noteGap, {align:'center', maxWidth: tblW});
 
   drawFooter();
 
