@@ -1110,7 +1110,8 @@ function addPileCard(pile) {
       <div class="form-row three">
         <div class="field">
           <label>Max Height (ft) <span class="required">*</span></label>
-          <input type="number" id="pmh-${pile.id}" value="${pile.maxHt||''}" step="0.1" min="0" oninput="updatePileField('${pile.id}','maxHt',this.value)">
+          <input type="text" id="pmh-${pile.id}" value="${pile.maxHt||''}" inputmode="decimal" placeholder="e.g. 8.0"
+            oninput="this.value=this.value.replace(/[^0-9.]/g,''); updatePileField('${pile.id}','maxHt',this.value)">
         </div>
         <div class="field">
           <label>Center Density (lb/ft³) <span class="required">*</span></label>
