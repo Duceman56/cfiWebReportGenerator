@@ -1687,7 +1687,7 @@ async function buildPDF() {
   for (let i = 0; i < pdfStr.length; i++) fixedBytes[i] = pdfStr.charCodeAt(i);
 
   // Save and show preview
-  const safeName = site.replace(/[^A-Za-z0-9_\-]/g,'_');
+  const safeName = site.trim().replace(/\s*-\s*/g,'-').replace(/[^A-Za-z0-9_\-]/g,'_').replace(/_+/g,'_');
   generatedFileName = `${safeName}_Report.pdf`;
   generatedPDFBlob = new Blob([fixedBytes], { type: 'application/pdf' });
 
@@ -1756,7 +1756,7 @@ function exportJSON() {
   const blob     = new Blob([json], { type: 'application/json' });
   const url      = URL.createObjectURL(blob);
   const a        = document.createElement('a');
-  const safeName = site.replace(/[^A-Za-z0-9_\-]/g, '_');
+  const safeName = site.trim().replace(/\s*-\s*/g,'-').replace(/[^A-Za-z0-9_\-]/g,'_').replace(/_+/g,'_');
   a.href     = url;
   a.download = `${safeName}_data.json`;
   document.body.appendChild(a);
