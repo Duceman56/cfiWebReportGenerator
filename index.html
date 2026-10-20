@@ -1616,7 +1616,7 @@ async function buildPDF() {
       ['Volume (ft³)',            fmt(calc.volumeFt3)],
       ['Horizontal Area (ft²)',   fmt(calc.horizArea)],
       ['Surface Area (ft²)',      fmt(calc.surfArea)],
-      ['Maximum Height (ft)',     String(calc.maxHt)],
+      ['Maximum Height (ft)',     Number(calc.maxHt).toFixed(1)],
       ['Optimum Number of Tires', fmt(calc.numTires)]
     ];
     const leftFrac = .62;
